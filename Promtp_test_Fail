@@ -17,3 +17,29 @@ in both the header row and the detail row.
 No more, no less.
 Rewrite the corrected .rdl file to disk and confirm 
 the filename.
+
+Data Connection String
+
+The .rdl file uploaded successfully but Power BI is 
+showing an error: connection string for datasources 
+is invalid.
+
+Please update the data source in the .rdl file with 
+the following connection details.
+
+Data source type: IBM DB2
+Server: [paste your DB2 server name here]
+Database: [paste your DB2 database name here]
+Connection string format for DB2 paginated reports:
+Data Source=servername;Initial Catalog=databasename;
+
+If the organisation uses a DSN or ODBC connection 
+instead, update the data source type to ODBC and 
+set the connection string to:
+DSN=dsnname;
+
+Leave the credentials section set to prompt for 
+credentials or use stored credentials as appropriate.
+
+Rewrite the corrected .rdl file to disk and confirm 
+the filename.
