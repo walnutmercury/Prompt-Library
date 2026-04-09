@@ -1,0 +1,19 @@
+The .rdl file failed to upload to Power BI Service with 
+error code rsWrongNumberOfTablixCells.
+
+This means the tablix has a mismatch between the number 
+of cells in the header row and the number of cells in 
+the detail row.
+
+Please fix the .rdl file by doing the following.
+Count the number of TablixColumn elements in the 
+TablixColumns section.
+Make sure the header row has exactly that many TablixCell 
+elements.
+Make sure the detail row has exactly that many TablixCell 
+elements.
+Every TablixColumn must have a corresponding TablixCell 
+in both the header row and the detail row.
+No more, no less.
+Rewrite the corrected .rdl file to disk and confirm 
+the filename.
