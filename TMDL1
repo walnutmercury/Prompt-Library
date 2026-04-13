@@ -386,3 +386,11 @@ STEP 4 - Confirm
 List the file written and show me the updated 
 column binding references so I can verify before 
 reopening Power BI Desktop.
+
+
+
+----
+
+The rename step in the TMDL is not working.
+Power BI desktop is showing original SQL column names like AGENCY_CODE instead of Agency code.
+Read the current TMDL table file and show me th full contents so I can see exactly how the rename step was written
