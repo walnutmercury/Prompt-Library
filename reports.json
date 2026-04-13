@@ -1,0 +1,80 @@
+{
+  "reports": [
+    {
+      "name": "Healthcare Provider Report",
+      "description": "Active and settled provider loans by specialty and state.",
+      "sql": "SELECT PROVIDER_ID, PROVIDER_NM, SPECIALTY_CD, STATE_CD, LOAN_AMT, STATUS_CD, APPROVAL_DT FROM SCHEMA.DIM_PROVIDER WHERE 1=1 AND SPECIALTY_CD IN :specialty AND STATUS_CD IN :status",
+      "columns": [
+        "Provider ID",
+        "Provider Name",
+        "Specialty",
+        "State",
+        "Loan Amount",
+        "Status",
+        "Approval Date"
+      ],
+      "filters": [
+        {
+          "name": "Specialty",
+          "type": "multiselect",
+          "column": "SPECIALTY_CD",
+          "table": "SCHEMA.DIM_PROVIDER",
+          "token": ":specialty",
+          "default": null
+        },
+        {
+          "name": "Status",
+          "type": "multiselect",
+          "column": "STATUS_CD",
+          "table": "SCHEMA.DIM_PROVIDER",
+          "token": ":status",
+          "default": null
+        }
+      ]
+    },
+    {
+      "name": "Loan Arrears Summary",
+      "description": "Accounts with outstanding overdue amounts by risk band.",
+      "sql": "SELECT ACCOUNT_ID, CLIENT_NM, DAYS_OVERDUE, AMOUNT_OWING, PRODUCT_CD, RISK_BAND FROM SCHEMA.FACT_ARREARS WHERE RISK_BAND IN :risk_band AND DAYS_OVERDUE >= :days_overdue",
+      "columns": [
+        "Account ID",
+        "Client Name",
+        "Days Overdue",
+        "Amount Owing",
+        "Product",
+        "Risk Band"
+      ],
+      "filters": [
+        {
+          "name": "Risk Band",
+          "type": "multiselect",
+          "column": "RISK_BAND",
+          "table": "SCHEMA.FACT_ARREARS",
+          "token": ":risk_band",
+          "default": null
+        },
+        {
+          "name": "Days Overdue",
+          "type": "numeric",
+          "column": "DAYS_OVERDUE",
+          "table": null,
+          "token": ":days_overdue",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "name": "Monthly Settlements",
+      "description": "Settlement volume and value trends by month.",
+      "sql": "SELECT MONTH_NM, SETTLEMENT_CNT, TOTAL_VALUE, AVG_LOAN_SIZE, YOY_CHANGE FROM SCHEMA.FACT_SETTLEMENTS ORDER BY MONTH_NM",
+      "columns": [
+        "Month",
+        "Settlements",
+        "Total Value",
+        "Avg Loan Size",
+        "YoY Change"
+      ],
+      "filters": []
+    }
+  ]
+}
