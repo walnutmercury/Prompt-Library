@@ -307,3 +307,43 @@ folder names and file names.
 Do not assume the folder is called Page1.
 Read whatever folder name actually exists there
 and use that exact name for all subsequent steps.
+
+
+Do not assume any folder names. Discover everything 
+automatically by reading the actual file system.
+
+STEP 1 - Discover the page folder
+Look inside:
+[report name].Report/definition/pages/
+
+Find the folder that exists there. It will have 
+a GUID name. Store that GUID and use it for all 
+subsequent steps instead of Page1 or any hardcoded name.
+
+STEP 2 - Read column names
+Find and read the TMDL table file inside:
+[report name].SemanticModel/definition/tables/
+
+List all column names exactly as they appear 
+after the rename step.
+
+STEP 3 - Fetch the PBIR visual schema
+Fetch this URL and read it:
+https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.1.0/schema.json
+
+Use only properties defined in that schema.
+Do not use any properties not in the schema.
+Do not use visualContainers anywhere.
+
+STEP 4 - Create visuals folder
+Create a visuals folder inside the discovered 
+page GUID folder.
+
+STEP 5 - Generate table visual only
+Create a table visual JSON file inside the 
+visuals folder using the schema from step 3 
+and columns from step 2 in Template order.
+
+STEP 6 - Confirm and stop
+List every file written with full path.
+Stop here and wait before doing anything else.
