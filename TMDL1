@@ -196,3 +196,45 @@ column bindings not the SQL aliases.
 STEP 5 - Rewrite all affected files to disk 
 and list every file changed.
 
+
+
+
+
+
+
+The semantic model is working and column names are 
+correct. Now generate the PBIR visual JSON files 
+and write them to disk.
+
+First run this command to get the exact column 
+names from the loaded semantic model:
+pbi --json column list
+
+Then use those exact column names to generate:
+
+VISUAL 1 - Table
+File: [report name].Report/definition/pages/Page1/visuals/table1/visual.json
+A table visual showing all columns in this order:
+[paste the Template column order from your Report Details here]
+
+VISUAL 2 onwards - One slicer per prompt
+File: [report name].Report/definition/pages/Page1/visuals/slicer1/visual.json
+One slicer visual per prompt from the Report Details.
+Use the prompt display name as the slicer title.
+Bind each slicer to its corresponding column.
+
+TITLE - Text box
+File: [report name].Report/definition/pages/Page1/visuals/title1/visual.json
+A text box visual at the top of the canvas showing 
+the report description as the title.
+
+Use PBIR JSON schema version that matches what 
+Power BI Desktop created when the PBIP was saved.
+Check the existing page JSON file to confirm 
+the correct schema version before generating.
+
+After writing all files list every file path 
+confirmed written to disk.
+
+Important: do not close or touch Power BI Desktop.
+I will close and reopen it manually after you confirm.
