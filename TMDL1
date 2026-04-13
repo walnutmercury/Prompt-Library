@@ -160,3 +160,39 @@ Regenerate all visual JSON files using the exact
 column names from the semantic model and rewrite 
 to disk. Then close Power BI Desktop without saving 
 and reopen to load the corrected visuals.
+
+----------------------------   Rename
+
+The semantic model loaded successfully but column 
+names in the TMDL file use SQL aliases which are 
+different from the MicroStrategy display names 
+in the Template section.
+
+Please do the following.
+
+STEP 1 - Read the Template section from the 
+Report Details I provided earlier and extract 
+the exact display name for each column in order.
+
+STEP 2 - Read the SQL and identify the column 
+alias for each SELECT column in the same order.
+
+STEP 3 - In the TMDL file add a rename step 
+after the Source step that maps each SQL alias 
+to its MicroStrategy display name like this:
+
+RenamedColumns = Table.RenameColumns(
+    Source,
+    {
+        {"sql_alias_1", "Display Name 1"},
+        {"sql_alias_2", "Display Name 2"}
+    }
+),
+
+STEP 4 - Regenerate the PBIR table visual JSON 
+using the MicroStrategy display names as the 
+column bindings not the SQL aliases.
+
+STEP 5 - Rewrite all affected files to disk 
+and list every file changed.
+
