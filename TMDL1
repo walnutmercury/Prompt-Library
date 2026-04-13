@@ -241,8 +241,7 @@ I will close and reopen it manually after you confirm.
 
 
 
----Failing Schema---
-The PBIR visual JSON files are failing with this error:
+---Failing Schema---The PBIR visual JSON files are failing with this error:
 property visualContainers has not been defined and 
 the schema does not allow additional properties.
 
@@ -264,12 +263,12 @@ If any valid visual JSON files exist read one and
 use its exact structure as the template for all 
 new visuals. Do not invent the schema from memory.
 
-STEP 3 - Get exact column names from semantic model
-Run this command and show me the output:
-pbi --json column list
-Use only these exact column names for all visual 
-bindings. Do not use SQL aliases or MicroStrategy 
-display names. Only use what pbi column list returns.
+STEP 3 - Get column names from the TMDL file
+Read the TMDL table file and extract the column 
+names exactly as they appear after the rename step.
+These are the names to use for all visual bindings.
+List them so I can confirm they are correct before 
+generating visuals.
 
 STEP 4 - Generate all visuals
 Using the schema from step 2 and column names 
@@ -288,6 +287,11 @@ and so on for each prompt.
 
 One title text box showing the report description at:
 [report name].Report/definition/pages/Page1/visuals/title1/visual.json
+
+STEP 5 - Write and confirm
+Write all files to disk and list every file path 
+confirmed written so I can close and reopen 
+Power BI Desktop to validate.
 
 STEP 5 - Write and confirm
 Write all files to disk and list every file path 
