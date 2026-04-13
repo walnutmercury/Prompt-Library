@@ -82,3 +82,57 @@ SQL Statement:
 
 Generate the complete PBIP folder structure and
 write all files to disk.
+
+
+
+---Errors---
+
+Please fix all issues in the PBIP folder and rewrite 
+all affected files to disk.
+
+CONNECTION
+Update the DB2 connection in the TMDL file to use 
+these exact details:
+Server and port: [your server:port here]
+Database: [your database here]
+Username: [your username here]
+
+Use this exact connection pattern, no variations:
+Source = DB2.Database(
+    "SERVERNAME:PORT",
+    "DATABASE",
+    [
+        HierarchicalNavigation=true,
+        Implementation="Microsoft",
+        Query="SQL HERE"
+    ]
+)
+
+Do not embed the password in any file.
+Credentials will be entered in Power BI Desktop.
+
+SQL
+Embed the original report SQL in the Query parameter.
+Add FETCH FIRST 100 ROWS ONLY at the end of the SQL
+for testing purposes.
+
+LINE FEEDS
+Find and remove all instances of #(lf) in every 
+file in the PBIP folder.
+Replace with a single space or remove entirely 
+depending on context.
+
+REPORT VISUALS
+Ensure PBIR visual JSON files exist at this path:
+[your report name].Report/definition/pages/Page1/visuals/
+
+Regenerate all visuals including:
+One table visual with all columns in Template order
+using MicroStrategy display names as column headers.
+One slicer visual per prompt with the prompt name
+as the slicer title.
+One title text box using the report description.
+
+After completing all fixes list every file written 
+with its full path so I can confirm before reopening 
+in Power BI Desktop.
