@@ -136,3 +136,27 @@ One title text box using the report description.
 After completing all fixes list every file written 
 with its full path so I can confirm before reopening 
 in Power BI Desktop.
+
+
+---Visuals didn't load -----
+
+The semantic model loaded successfully and data 
+refreshed correctly. However no visuals appeared 
+on the report canvas.
+
+Please check the PBIR visual JSON files at:
+[report name].Report/definition/pages/Page1/visuals/
+
+List the files that exist there. Then check each 
+visual JSON file and confirm:
+- The $schema field is present and correct
+- The column bindings reference columns that exist 
+  in the semantic model by their exact names
+- Run this command to list the actual column names 
+  that loaded into the semantic model:
+  pbi --json column list
+
+Regenerate all visual JSON files using the exact 
+column names from the semantic model and rewrite 
+to disk. Then close Power BI Desktop without saving 
+and reopen to load the corrected visuals.
