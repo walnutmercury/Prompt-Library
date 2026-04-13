@@ -68,3 +68,17 @@ OUTPUT ORDER
 2. Write all TMDL and JSON files to the PBIP folder
    structure in the current working directory
 3. Confirm all files written with paths listed
+
+
+
+Report name: [name here]
+PBIP folder path: [path to the .pbip folder you created]
+
+Report Details:
+[paste everything here]
+
+SQL Statement:
+[paste SQL here]
+
+Generate the complete PBIP folder structure and
+write all files to disk.
