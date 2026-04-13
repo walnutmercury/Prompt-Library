@@ -297,3 +297,13 @@ STEP 5 - Write and confirm
 Write all files to disk and list every file path 
 confirmed written so I can close and reopen 
 Power BI Desktop to validate.
+
+--- Found it needs GUID ---
+Look inside this folder:
+[report name].Report/definition/pages/
+
+List everything you find there including all 
+folder names and file names.
+Do not assume the folder is called Page1.
+Read whatever folder name actually exists there
+and use that exact name for all subsequent steps.
