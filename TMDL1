@@ -347,3 +347,42 @@ and columns from step 2 in Template order.
 STEP 6 - Confirm and stop
 List every file written with full path.
 Stop here and wait before doing anything else.
+
+
+---mismatched--
+
+The matrix visual loaded in Power BI Desktop but 
+has no fields bound to it.
+
+This means the column references in the visual JSON 
+do not match the actual column names in the semantic 
+model.
+
+STEP 1 - Read the current visual JSON
+Read this file and show me the full contents:
+[report name].Report/definition/pages/[auto-discover GUID]/visuals/table1/visual.json
+
+Show me exactly how the columns are being referenced 
+in the JSON.
+
+STEP 2 - Read the TMDL file
+Read the TMDL table file and show me exactly how 
+the columns are defined there including the table 
+name and each column name.
+
+STEP 3 - Fix the bindings
+The column references in the visual JSON must match 
+exactly this format:
+Table Name.Column Name
+
+Where Table Name is the exact name of the table 
+in the TMDL file and Column Name is the exact 
+column name after renaming.
+
+Update the visual JSON to use the correct binding 
+format and rewrite the file to disk.
+
+STEP 4 - Confirm
+List the file written and show me the updated 
+column binding references so I can verify before 
+reopening Power BI Desktop.
