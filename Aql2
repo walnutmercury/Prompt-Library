@@ -1,67 +1,29 @@
-Build a practical migration_helper.py, not a full architecture.
+Modify the existing migration_contract flow.
 
-Goal:
-For each MicroStrategy report, create a report-specific flattened SQL result and Power BI-ready metadata.
+Do not create a second contract shape.
 
-Required functions:
+Add only the missing fields needed for messy MicroStrategy reports:
+- original_sql
+- rebuilt_sql
+- template_fields
+- sql_fields
+- sql_runnability_status: "unknown" | "assumed_runnable" | "failed_static_check"
+- unmapped
+- warnings
 
-1. extract_sql_fields(sql)
-- Parse SELECT list
-- Return aliases, source expressions, aggregate type
-- Detect SUM/MAX/MIN/COUNT/AVG as measures
+Important:
+The tool cannot know whether SQL truly runs unless we execute it against the database.
+So do not claim "runnable".
+Instead:
+- perform static checks only
+- classify as "assumed_runnable" if SQL exists and has SELECT/FROM
+- classify as "failed_static_check" if SQL is missing or structurally incomplete
+- otherwise use "unknown"
 
-2. extract_template_fields(report_details_text)
-- Extract MicroStrategy template field order
-- Filter obvious description lines
-- Preserve field order
+Preserve existing DB2 connection, chart creation, PBIP/TMDL builder, and existing migration contract logic.
+Only add MicroStrategy SQL/template reconciliation where needed.
 
-3. map_template_to_sql(template_fields, sql_fields)
-- Use exact match first
-- Then normalized match:
-  lowercase, remove spaces, underscores, brackets, punctuation
-- Return mapped fields and unmapped fields
-- Do not use fuzzy matching yet unless already available
+Core rule:
+If a MicroStrategy template/display field maps to a SQL output column, use the MicroStrategy template/display name as the Power BI visible column name, while preserving the SQL alias internally for traceability.
 
-4. rebuild_flattened_sql(original_sql, mapped_fields)
-- Preserve original joins, where, group by
-- Keep SQL as close to MicroStrategy SQL as possible
-- Rename ugly aliases like WXBFS1 to MicroStrategy display names where safely mapped
-- Store both original_sql and rebuilt_sql
-
-5. create_dax_measures(measures)
-- Only for simple aggregate measures or calculated metrics not already resolved in SQL
-- If SQL already has SUM(...) as output column, do not duplicate unnecessarily
-- For unresolved formulas, create DAX stub with warning
-
-6. write_validation_report(contract)
-- Report name
-- Template fields count
-- SQL fields count
-- Mapped fields
-- Measures
-- DAX created
-- Unmapped fields
-- Warnings
-- Original SQL path
-- Rebuilt SQL path
-
-Contract shape:
-{
-  "report_name": "",
-  "original_sql": "",
-  "rebuilt_sql": "",
-  "template_fields": [],
-  "sql_fields": [],
-  "fields": [],
-  "measures": [],
-  "dax_measures": [],
-  "unmapped": [],
-  "warnings": []
-}
-
-Keep changes minimal.
-Do not build multiple packages or handlers.
-Do not implement cube support yet.
-Do not implement chart inference yet.
-Do not refactor the whole PBIP builder.
-Make it work first for SQL-backed grid reports like ISR Exposure.
+Field order should follow the MicroStrategy template order where possible.
