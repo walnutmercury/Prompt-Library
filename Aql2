@@ -1,0 +1,67 @@
+Build a practical migration_helper.py, not a full architecture.
+
+Goal:
+For each MicroStrategy report, create a report-specific flattened SQL result and Power BI-ready metadata.
+
+Required functions:
+
+1. extract_sql_fields(sql)
+- Parse SELECT list
+- Return aliases, source expressions, aggregate type
+- Detect SUM/MAX/MIN/COUNT/AVG as measures
+
+2. extract_template_fields(report_details_text)
+- Extract MicroStrategy template field order
+- Filter obvious description lines
+- Preserve field order
+
+3. map_template_to_sql(template_fields, sql_fields)
+- Use exact match first
+- Then normalized match:
+  lowercase, remove spaces, underscores, brackets, punctuation
+- Return mapped fields and unmapped fields
+- Do not use fuzzy matching yet unless already available
+
+4. rebuild_flattened_sql(original_sql, mapped_fields)
+- Preserve original joins, where, group by
+- Keep SQL as close to MicroStrategy SQL as possible
+- Rename ugly aliases like WXBFS1 to MicroStrategy display names where safely mapped
+- Store both original_sql and rebuilt_sql
+
+5. create_dax_measures(measures)
+- Only for simple aggregate measures or calculated metrics not already resolved in SQL
+- If SQL already has SUM(...) as output column, do not duplicate unnecessarily
+- For unresolved formulas, create DAX stub with warning
+
+6. write_validation_report(contract)
+- Report name
+- Template fields count
+- SQL fields count
+- Mapped fields
+- Measures
+- DAX created
+- Unmapped fields
+- Warnings
+- Original SQL path
+- Rebuilt SQL path
+
+Contract shape:
+{
+  "report_name": "",
+  "original_sql": "",
+  "rebuilt_sql": "",
+  "template_fields": [],
+  "sql_fields": [],
+  "fields": [],
+  "measures": [],
+  "dax_measures": [],
+  "unmapped": [],
+  "warnings": []
+}
+
+Keep changes minimal.
+Do not build multiple packages or handlers.
+Do not implement cube support yet.
+Do not implement chart inference yet.
+Do not refactor the whole PBIP builder.
+Make it work first for SQL-backed grid reports like ISR Exposure.
