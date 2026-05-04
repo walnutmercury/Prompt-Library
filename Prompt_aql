@@ -1,0 +1,122 @@
+I need you to add a MicroStrategy migration planning layer to my existing Power BI PBIP/TMDL builder.
+
+Goal:
+Take messy MicroStrategy inputs — generated SQL, report details HTML/text, template fields, prompts, and optional PDF/image-derived visual metadata — and convert them into a standard JSON contract that my existing Power BI builder can consume.
+
+Do not try to build a universal MicroStrategy translator. Build a deterministic triage + handler engine.
+
+Architecture to add:
+
+1. report_classifier.py
+- Classify each report into:
+  - GREEN_SQL_GRID
+  - AMBER_SQL_WITH_WARNINGS
+  - CHART_REPORT
+  - DERIVED_METRIC_REVIEW
+  - CUBE_OR_NO_SQL_REVIEW
+  - UNSUPPORTED_COMPLEX
+- Detect:
+  - generated SQL exists
+  - SELECT aliases
+  - aggregate functions SUM/MAX/MIN/COUNT/AVG
+  - GROUP BY
+  - CASE statements
+  - subqueries
+  - temp tables
+  - ApplySimple / ApplyAgg / ApplyOLAP
+  - derived metrics
+  - level metrics
+  - cube/intelligent cube references
+  - missing SQL
+
+2. sql_alias_extractor.py
+- Use sqlglot if available, otherwise robust regex fallback.
+- Extract SELECT output fields:
+  - output alias
+  - source expression
+  - aggregation type
+  - is_measure
+  - is_dimension
+- Preserve original SQL.
+- Do not fail if parsing is imperfect; return warnings.
+
+3. report_details_parser.py
+- Parse report details HTML/text using BeautifulSoup/regex.
+- Extract:
+  - report name
+  - template field order
+  - metric display names
+  - metric formulas where visible
+  - prompts
+  - filters
+  - visual hints if present
+
+4. metric_mapper.py
+- Map SQL aliases back to MicroStrategy display names.
+- Match by:
+  - exact alias
+  - normalized name
+  - expression similarity
+  - aggregate source column
+- Return confidence score and warnings.
+
+5. prompt_filter_mapper.py
+- Convert MicroStrategy prompts into Power BI slicer/filter metadata.
+- Include answered and unanswered prompts.
+- Do not block generation if prompt target column is uncertain.
+
+6. migration_contract.py
+- Define a JSON/dataclass contract like:
+
+{
+  "report_name": "",
+  "automation_tier": "",
+  "migration_type": "flattened_sql_output",
+  "can_generate_without_llm": true,
+  "source_sql": "",
+  "output_table_name": "",
+  "columns": [],
+  "measures": [],
+  "filters": [],
+  "prompts": [],
+  "visuals": [],
+  "warnings": [],
+  "manual_review": [],
+  "confidence": {}
+}
+
+7. validation_report.py
+- Generate a human-readable migration summary:
+  - fields mapped x/y
+  - metrics mapped x/y
+  - prompts mapped x/y
+  - DAX required yes/no
+  - manual review items
+  - risks
+
+8. orchestrator.py
+- Main function:
+  plan_migration(report_inputs) -> MigrationContract
+- It should:
+  - parse SQL
+  - parse report details
+  - classify report
+  - map fields/metrics/prompts
+  - build contract
+  - generate validation summary
+  - pass the contract to my existing TMDL/PBIP builder
+
+Important rules:
+- Default to flattened SQL output per report.
+- Do not build reusable semantic models.
+- Use SQL as source of truth when generated SQL exists.
+- Put joins, filters, GROUP BY, SUM/MAX/COUNT/CASE in SQL.
+- Put visual layout, slicers, formatting in Power BI.
+- Use DAX only for calculations not already resolved in SQL.
+- Block almost nothing. Generate with warnings unless impossible.
+- LLM assistance should be optional and only used for ambiguous formulas, field mapping, or chart inference.
+- Make the code modular, testable, and safe.
+- Add unit tests with sample SQL/report details strings.
+- Add clear logging.
+
+Please inspect the current repo structure first and propose where these files should live before making changes.
