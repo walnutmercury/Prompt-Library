@@ -35,3 +35,17 @@ Output first:
 2. Why
 3. Risks
 4. Then wait for confirmation before large edits
+
+
+
+---
+Proceed with backup and inspection phase, with these constraints:
+
+1. All reconciliation tracking must be optional.
+2. Existing flow must run unchanged if data is missing.
+3. Do not rely on hard-coded line numbers.
+4. Prefer small helper functions.
+5. Add feature flag ENABLE_RECONCILIATION = True.
+6. Do not rename existing variables unless required.
+7. Show me proposed files/functions to modify before implementation.
+8. rebuilt_sql should mean Power BI-ready SQL only if changes were required; otherwise equal original_sql.
