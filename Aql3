@@ -1,0 +1,37 @@
+Before making changes, inspect the current codebase and identify:
+
+1. Where the existing migration_contract is defined
+2. Where SQL is currently parsed or passed through
+3. Where PBIP/TMDL generation starts
+4. Where chart generation occurs
+5. The smallest insertion point for a MicroStrategy reconciliation step
+
+Then implement only minimal changes.
+
+Requirements:
+- Preserve all existing working functionality
+- Do not rewrite current builder flow
+- Extend existing migration_contract only
+- Add reconciliation only when MicroStrategy template/report details exist
+- If clean SQL already exists, pass through unchanged
+- If template fields exist:
+   - map template names to SQL aliases
+   - use template names as visible Power BI names
+   - preserve SQL aliases internally
+   - order fields by template order where possible
+- Add:
+   original_sql
+   rebuilt_sql
+   template_fields
+   sql_fields
+   unmapped
+   warnings
+   sql_runnability_status (static only)
+
+Do not mark SQL runnable unless executed.
+
+Output first:
+1. Proposed files to modify
+2. Why
+3. Risks
+4. Then wait for confirmation before large edits
