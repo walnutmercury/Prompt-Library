@@ -1,0 +1,57 @@
+Modify the existing SQL cleaning logic in this file.
+
+### Goal
+Replace the current remove_microstrategy_parameters function with a safer version that:
+- Removes MicroStrategy-specific syntax
+- Does NOT modify SQL logic (no AND/OR/WHERE rewrites)
+- Ensures SQL runs in Power BI (SQL Server compatible)
+
+---
+
+### Requirements
+
+1. Delete or fully replace the existing function:
+   - remove_microstrategy_parameters
+
+2. Add this new function exactly as written:
+
+python def clean_sql_for_power_bi(sql_query: str) -> str:     import re      # 1. Remove "with parameters: xxx" at the end     sql_query = re.sub(         r'\s+with\s+parameters:\s*\d+\s*$',         '',         sql_query,         flags=re.IGNORECASE     )      # 2. Replace "column IN (?)" with "1=1" (neutral filter)     sql_query = re.sub(         r'\[?[\w\.]+\]?\s+IN\s+\(\?\)',         '1=1',         sql_query,         flags=re.IGNORECASE     )      # 3. Fix CTE issue for SQL Server (must start with semicolon)     stripped = sql_query.strip().lower()     if stripped.startswith("with"):         sql_query = ";" + sql_query      return sql_query 
+
+---
+
+3. Update usage
+Wherever remove_microstrategy_parameters is currently used:
+- Replace it with clean_sql_for_power_bi
+
+Example:
+python final_sql = clean_sql_for_power_bi(final_sql) 
+
+---
+
+### Constraints (IMPORTANT)
+
+- Do NOT add additional regex logic
+- Do NOT modify WHERE / AND / OR logic
+- Do NOT attempt to optimise SQL
+- Do NOT change any other parts of the pipeline
+- Keep all existing functionality unchanged
+
+---
+
+### Outcome
+
+The SQL should:
+- No longer contain IN (?)
+- No longer contain with parameters: xxx
+- Execute successfully in Power BI
+- Preserve original logic
+
+---
+
+### Before making changes
+
+Show:
+- Functions to be modified
+- Exact locations of replacements
+
+Then proceed only after confirmation.
