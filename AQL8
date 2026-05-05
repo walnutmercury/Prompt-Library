@@ -1,0 +1,152 @@
+Add a conservative multi-temp-table to CTE converter for MicroStrategy SQL.
+
+Goal:
+Convert SQL Server temp-table workflows like:
+
+SELECT ...
+INTO ##Temp1
+FROM ...
+
+SELECT ...
+INTO ##Temp2
+FROM ##Temp1 ...
+
+SELECT ...
+FROM ##Temp2
+
+into:
+
+;WITH Temp1 AS (
+    SELECT ...
+    FROM ...
+),
+Temp2 AS (
+    SELECT ...
+    FROM Temp1 ...
+)
+SELECT ...
+FROM Temp2
+
+Feature flag:
+ENABLE_MULTI_TEMP_TABLE_CONVERSION = False
+
+Only run when:
+- ENABLE_MULTI_TEMP_TABLE_CONVERSION = True
+- temp_table_check["has_select_into_temp"] is True
+- temp_table_check["temp_tables"] has more than 1 item
+
+Add this function:
+
+```python
+def convert_multi_temp_tables_to_ctes(sql_query: str) -> tuple[str, list[str]]:
+    """
+    Convert multiple simple MicroStrategy SELECT INTO ##temp blocks into chained CTEs.
+
+    Conservative rules:
+    - Only handles SELECT ... INTO ##temp FROM ... blocks.
+    - Preserves SELECT, FROM, JOIN, WHERE, GROUP BY logic.
+    - Removes only the INTO ##temp clause.
+    - Replaces later ##temp references with CTE names.
+    - Does not attempt to rewrite procedural SQL, UPDATE, DELETE, INSERT INTO, CREATE TABLE.
+    """
+    import re
+
+    warnings = []
+
+    if not sql_query:
+        return sql_query, warnings
+
+    unsupported_patterns = [
+        r"\bupdate\s+#{1,2}",
+        r"\bdelete\s+from\s+#{1,2}",
+        r"\binsert\s+into\s+#{1,2}",
+        r"\bcreate\s+table\s+#{1,2}",
+    ]
+
+    for pattern in unsupported_patterns:
+        if re.search(pattern, sql_query, flags=re.IGNORECASE):
+            warnings.append(
+                "Temp table conversion skipped: unsupported procedural temp-table SQL detected."
+            )
+            return sql_query, warnings
+
+    # Match each SELECT ... INTO ##temp ... block up to the next SELECT ... INTO ##temp
+    # or the final SELECT that consumes temp tables.
+    pattern = re.compile(
+        r"(?P<select_block>\bselect\b[\s\S]+?)"
+        r"\s+\binto\s+(?P<temp>#{1,2}[A-Za-z_][A-Za-z0-9_]*)\s+"
+        r"(?P<from_block>\bfrom\b[\s\S]+?)"
+        r"(?=(?:\bselect\b[\s\S]+?\binto\s+#{1,2}[A-Za-z_][A-Za-z0-9_]*)|\bselect\b|$)",
+        flags=re.IGNORECASE
+    )
+
+    matches = list(pattern.finditer(sql_query))
+
+    if not matches:
+        warnings.append("Temp tables detected but no convertible SELECT INTO blocks found.")
+        return sql_query, warnings
+
+    ctes = []
+    temp_name_map = {}
+
+    for match in matches:
+        raw_temp_name = match.group("temp")
+        cte_name = raw_temp_name.replace("#", "")
+
+        select_block = match.group("select_block").strip()
+        from_block = match.group("from_block").strip()
+
+        # Replace temp references inside later CTEs
+        for old_temp, new_cte in temp_name_map.items():
+            select_block = re.sub(re.escape(old_temp), new_cte, select_block, flags=re.IGNORECASE)
+            from_block = re.sub(re.escape(old_temp), new_cte, from_block, flags=re.IGNORECASE)
+
+        temp_name_map[raw_temp_name] = cte_name
+
+        ctes.append(
+            f"{cte_name} AS (\n{select_block}\n{from_block}\n)"
+        )
+
+    # Remove all SELECT INTO blocks from the original SQL
+    remaining_sql = pattern.sub("", sql_query).strip()
+
+    # Replace temp table references in final SQL
+    for old_temp, new_cte in temp_name_map.items():
+        remaining_sql = re.sub(re.escape(old_temp), new_cte, remaining_sql, flags=re.IGNORECASE)
+
+    if not remaining_sql:
+        warnings.append(
+            "Temp table conversion produced CTEs but no final SELECT remained. Manual review required."
+        )
+        return sql_query, warnings
+
+    converted_sql = ";WITH " + ",\n".join(ctes) + "\n" + remaining_sql
+
+    warnings.append(
+        f"Converted {len(ctes)} temp table SELECT INTO block(s) to CTEs for Power BI compatibility."
+    )
+
+    return converted_sql, warnings
+
+
+
+
+----
+
+if ENABLE_MULTI_TEMP_TABLE_CONVERSION:
+    temp_table_check = parsed_data.get("temp_table_check", {})
+
+    if temp_table_check.get("has_select_into_temp"):
+        temp_count = len(temp_table_check.get("temp_tables", []))
+
+        if temp_count > 1:
+            converted_sql, temp_warnings = convert_multi_temp_tables_to_ctes(final_sql)
+            final_sql = converted_sql
+            parsed_data["warnings"].extend(temp_warnings)
+            parsed_data["sql_modifications"].append(
+                "Attempted multi-temp-table to CTE conversion"
+            )
+
+
+--------
+
