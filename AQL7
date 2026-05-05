@@ -1,0 +1,83 @@
+Add a SAFE temp-table-to-CTE conversion function for simple MicroStrategy SQL patterns.
+
+Goal:
+Convert ONLY simple SELECT INTO temp table patterns into a CTE.
+Do NOT attempt to handle complex multi-step temp table workflows.
+
+Add a feature flag:
+ENABLE_TEMP_TABLE_CONVERSION = False
+
+Only run conversion when:
+- ENABLE_TEMP_TABLE_CONVERSION = True
+- AND temp_table_check["has_select_into_temp"] is True
+- AND only ONE temp table is present
+
+Add this function:
+
+```python
+def convert_simple_temp_table_to_cte(sql_query: str) -> tuple[str, list[str]]:
+    """
+    Convert simple 'SELECT ... INTO #temp FROM ...' into a CTE.
+
+    Returns:
+        (converted_sql, warnings)
+    """
+    import re
+
+    warnings = []
+
+    if not sql_query:
+        return sql_query, warnings
+
+    # Find SELECT INTO pattern
+    match = re.search(
+        r'(select[\s\S]+?)\s+into\s+(#{1,2}\w+)\s+(from[\s\S]+?)(?=\bselect\b|$)',
+        sql_query,
+        flags=re.IGNORECASE
+    )
+
+    if not match:
+        return sql_query, warnings
+
+    select_part = match.group(1)
+    temp_name = match.group(2).replace("#", "")  # remove # for CTE name
+    from_part = match.group(3)
+
+    warnings.append(f"Converted temp table #{temp_name} to CTE")
+
+    # Build CTE
+    cte_sql = f";WITH {temp_name} AS (\n{select_part} {from_part}\n)\n"
+
+    # Remove original SELECT INTO block
+    sql_query = re.sub(
+        r'select[\s\S]+?\s+into\s+#{1,2}\w+\s+from[\s\S]+?(?=\bselect\b|$)',
+        '',
+        sql_query,
+        flags=re.IGNORECASE
+    )
+
+    # Replace references to temp table
+    sql_query = re.sub(
+        r'#{1,2}' + temp_name,
+        temp_name,
+        sql_query,
+        flags=re.IGNORECASE
+    )
+
+    return cte_sql + sql_query, warnings
+
+
+
+temp_check = detect_temp_table_usage(sql)
+parsed_data["temp_table_check"] = temp_check
+
+
+if ENABLE_TEMP_TABLE_CONVERSION:
+    if temp_check["has_select_into_temp"] and len(temp_check["temp_tables"]) == 1:
+        sql, temp_warnings = convert_simple_temp_table_to_cte(sql)
+        parsed_data["warnings"].extend(temp_warnings)
+    else:
+        parsed_data["warnings"].append(
+            "Temp tables detected but not converted (complex pattern)"
+        )
+
