@@ -25,3 +25,209 @@ TODO: SQL Formatting + Debug Enhancements
 6. (Optional)
    - Ensure formatting is applied ONLY at final output stage
    - Never before transformations
+
+
+----
+Improve column matching before moving to chart logic.
+
+Goal:
+Make template field → SQL field matching more reliable and explainable.
+
+Do NOT refactor the whole builder.
+Add/extend helper functions only.
+
+Core idea:
+For each MicroStrategy template/display field, find the best SQL output match and store:
+- template_name
+- sql_alias
+- sql_expression
+- confidence
+- method
+- warnings
+
+Use this priority order:
+
+1. Exact display match
+2. Normalized name match
+3. SQL alias match
+4. SQL expression/source column match
+5. Aggregate source match
+6. Fallback: unmapped
+
+Normalization rules:
+- lowercase
+- remove spaces
+- remove underscores
+- remove brackets
+- remove punctuation
+- remove common suffixes like key, id only for secondary matching
+- compare both display names and SQL aliases
+
+Add these helper functions:
+
+```python
+import re
+from typing import Dict, List, Any, Optional
+
+def normalize_field_name(name: str, remove_suffixes: bool = False) -> str:
+    if not name:
+        return ""
+
+    text = name.lower()
+    text = re.sub(r'[$begin:math:display$$end:math:display$$begin:math:text$$end:math:text$\{\},.%]', '', text)
+    text = re.sub(r'[_\s\-\/]+', '', text)
+
+    if remove_suffixes:
+        for suffix in ["key", "id"]:
+            if text.endswith(suffix):
+                text = text[:-len(suffix)]
+
+    return text
+
+
+def extract_source_column(expression: str) -> str:
+    """
+    Extract likely source column from SQL expression.
+    Examples:
+    SUM([a11].[Claim_Gross_Paid_Amount]) -> Claim_Gross_Paid_Amount
+    [a13].[Policy_Insured_Name] -> Policy_Insured_Name
+    """
+    if not expression:
+        return ""
+
+    matches = re.findall(r'$begin:math:display$\[\^$end:math:display$]+\]\.$begin:math:display$\(\[\^$end:math:display$]+)\]', expression)
+    if matches:
+        return matches[-1]
+
+    bracket_matches = re.findall(r'$begin:math:display$\(\[\^$end:math:display$]+)\]', expression)
+    if bracket_matches:
+        return bracket_matches[-1]
+
+    return expression.strip()
+
+
+def classify_sql_field(sql_field: Dict[str, Any]) -> str:
+    expr = (sql_field.get("expression") or "").lower()
+    alias = (sql_field.get("alias") or "").lower()
+
+    if re.search(r'\b(sum|avg|count|min|max)\s*\(', expr):
+        return "measure"
+
+    if "date" in alias or "date" in expr:
+        return "date"
+
+    if alias.endswith("_key") or alias.endswith("key") or alias.endswith("_id"):
+        return "key"
+
+    return "dimension"
+
+
+def score_field_match(template_name: str, sql_field: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Return match score and method.
+    sql_field expected keys:
+    - alias
+    - expression
+    - display_name optional
+    """
+    alias = sql_field.get("alias", "")
+    expression = sql_field.get("expression", "")
+    display_name = sql_field.get("display_name", "")
+
+    template_norm = normalize_field_name(template_name)
+    template_norm_loose = normalize_field_name(template_name, remove_suffixes=True)
+
+    candidates = [
+        ("exact_display", display_name, 1.00),
+        ("exact_alias", alias, 0.98),
+        ("source_column", extract_source_column(expression), 0.92),
+    ]
+
+    for method, candidate, confidence in candidates:
+        if candidate and template_name.lower().strip() == candidate.lower().strip():
+            return {"confidence": confidence, "method": method}
+
+    for method, candidate, confidence in candidates:
+        candidate_norm = normalize_field_name(candidate)
+        if candidate_norm and template_norm == candidate_norm:
+            return {"confidence": confidence - 0.05, "method": f"normalized_{method}"}
+
+    for method, candidate, confidence in candidates:
+        candidate_norm = normalize_field_name(candidate, remove_suffixes=True)
+        if candidate_norm and template_norm_loose == candidate_norm:
+            return {"confidence": confidence - 0.15, "method": f"loose_{method}"}
+
+    # Partial containment: useful for long insurance names, but lower confidence
+    source_col = extract_source_column(expression)
+    source_norm = normalize_field_name(source_col)
+    if source_norm and (template_norm in source_norm or source_norm in template_norm):
+        return {"confidence": 0.70, "method": "partial_source_column"}
+
+    return {"confidence": 0.0, "method": "unmapped"}
+
+
+def map_template_fields_to_sql(
+    template_fields: List[str],
+    sql_fields: List[Dict[str, Any]],
+    minimum_confidence: float = 0.70
+) -> Dict[str, Any]:
+    mapped = {}
+    unmapped_template = []
+    used_sql_aliases = set()
+    warnings = []
+
+    for template_name in template_fields:
+        best_match = None
+        best_score = 0.0
+        best_method = "unmapped"
+
+        for sql_field in sql_fields:
+            alias = sql_field.get("alias", "")
+            if alias in used_sql_aliases:
+                continue
+
+            result = score_field_match(template_name, sql_field)
+            if result["confidence"] > best_score:
+                best_score = result["confidence"]
+                best_method = result["method"]
+                best_match = sql_field
+
+        if best_match and best_score >= minimum_confidence:
+            alias = best_match.get("alias", "")
+            used_sql_aliases.add(alias)
+
+            mapped[template_name] = {
+                "template_name": template_name,
+                "sql_alias": alias,
+                "sql_expression": best_match.get("expression", ""),
+                "field_type": classify_sql_field(best_match),
+                "confidence": round(best_score, 2),
+                "method": best_method,
+                "powerbi_display_name": template_name,
+                "warnings": []
+            }
+
+            if best_score < 0.85:
+                mapped[template_name]["warnings"].append(
+                    f"Low confidence mapping: {best_method} ({best_score:.2f})"
+                )
+                warnings.append(
+                    f"Low confidence mapping: {template_name} -> {alias} ({best_method}, {best_score:.2f})"
+                )
+        else:
+            unmapped_template.append(template_name)
+
+    unmapped_sql = [
+        field.get("alias", "")
+        for field in sql_fields
+        if field.get("alias", "") not in used_sql_aliases
+    ]
+
+    return {
+        "mapped_fields": mapped,
+        "unmapped": {
+            "template": unmapped_template,
+            "sql": unmapped_sql
+        },
+        "warnings": warnings
+    }
