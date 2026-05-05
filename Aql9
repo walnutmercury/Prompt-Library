@@ -1,0 +1,22 @@
+Add a SQL pretty-printing function to the Python pipeline.
+
+Requirements:
+- Use Python only (no bash or shell commands)
+- Use sqlparse if available
+- If sqlparse is not installed, return the original SQL unchanged
+- Do not modify SQL logic, only formatting
+- Apply formatting only at the final output stage (after all transformations)
+- Store the formatted SQL separately as "formatted_sql" in parsed_data
+
+Formatting requirements (upgrade):
+- Uppercase SQL keywords
+- Proper indentation with indent_width=2
+- Preserve comments (do not strip comments)
+- Clean, readable line breaks for SELECT, FROM, JOIN, WHERE, GROUP BY
+- Safe for complex SQL including CTEs
+
+Implement:
+
+def pretty_print_sql(sql: str) -> str
+
+Then call it before output/export.
