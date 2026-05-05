@@ -1,0 +1,69 @@
+Add a conservative temp-table detector for MicroStrategy SQL.
+
+Goal:
+Do NOT automatically rewrite temp tables yet. First detect and flag them safely.
+
+Reason:
+MicroStrategy generated SQL may contain patterns like:
+
+SELECT ...
+INTO ##T7X5R5DS8MD000
+FROM ...
+
+Power BI may not reliably run SQL Server temp-table workflows inside native queries. These need manual review or later conversion to CTEs.
+
+Add this helper function:
+
+```python
+def detect_temp_table_usage(sql_query: str) -> dict:
+    """
+    Detect SQL temp table usage without modifying SQL.
+
+    Returns:
+    {
+        "has_temp_tables": bool,
+        "temp_tables": list[str],
+        "has_select_into_temp": bool,
+        "warnings": list[str]
+    }
+    """
+    import re
+
+    if not sql_query:
+        return {
+            "has_temp_tables": False,
+            "temp_tables": [],
+            "has_select_into_temp": False,
+            "warnings": []
+        }
+
+    temp_tables = sorted(set(re.findall(
+        r'[#]{1,2}[A-Za-z_][A-Za-z0-9_]*',
+        sql_query,
+        flags=re.IGNORECASE
+    )))
+
+    has_select_into_temp = bool(re.search(
+        r'\bselect\b[\s\S]+?\binto\s+[#]{1,2}[A-Za-z_][A-Za-z0-9_]*',
+        sql_query,
+        flags=re.IGNORECASE
+    ))
+
+    warnings = []
+
+    if temp_tables:
+        warnings.append(
+            f"Temp table usage detected: {', '.join(temp_tables[:5])}"
+        )
+
+    if has_select_into_temp:
+        warnings.append(
+            "SELECT INTO temp table detected. Power BI may not run this as a native query. Manual review or CTE rewrite may be required."
+        )
+
+    return {
+        "has_temp_tables": bool(temp_tables),
+        "temp_tables": temp_tables,
+        "has_select_into_temp": has_select_into_temp,
+        "warnings": warnings
+    }
