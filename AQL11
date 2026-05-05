@@ -1,0 +1,27 @@
+TODO: SQL Formatting + Debug Enhancements
+
+1. Ensure only one formatter is used:
+   - Remove deprecated `format_sql_pretty`
+   - Standardise on `pretty_print_sql`
+
+2. Clean variable usage:
+   - original_sql
+   - rebuilt_sql
+   - formatted_original
+   - formatted_rebuilt
+
+3. Fix file writing:
+   - Ensure each file is written once (no overwrite)
+   - Separate original vs converted outputs
+
+4. Store formatted SQL in parsed_data:
+   - parsed_data['original_sql_pretty']
+   - parsed_data['rebuilt_sql_pretty']
+
+5. (Optional - HIGH VALUE)
+   - Add SQL diff view (original vs rebuilt)
+   - Helps validate temp → CTE conversions
+
+6. (Optional)
+   - Ensure formatting is applied ONLY at final output stage
+   - Never before transformations
