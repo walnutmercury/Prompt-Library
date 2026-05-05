@@ -1,0 +1,72 @@
+Add a Python helper to filter MicroStrategy description lines from template field names.
+
+Implement this function:
+
+```python
+import re
+from typing import List
+
+def is_description_line(line: str) -> bool:
+    """
+    Return True if a MicroStrategy template/report-details line is a description,
+    not a field/column name.
+    """
+    if not line:
+        return True
+
+    text = line.strip()
+    lower = text.lower()
+
+    # Remove obvious punctuation-only / empty lines
+    if not text or text in {":", "-", "—"}:
+        return True
+
+    # Sentence-like descriptions
+    if text.endswith("."):
+        return True
+
+    # Common MicroStrategy description phrases
+    description_phrases = [
+        "the name of",
+        "the full description",
+        "full description of",
+        "description of",
+        "relates to",
+        "based on",
+        "used to",
+        "represents",
+        "indicates whether",
+        "identifies",
+        "this attribute",
+        "this metric",
+        "this field",
+    ]
+
+    if any(phrase in lower for phrase in description_phrases):
+        return True
+
+    # Lines starting like prose
+    if re.match(r"^(the|this|a|an)\s+", lower):
+        return True
+
+    return False
+
+
+def filter_template_fields(lines: List[str]) -> List[str]:
+    """
+    Keep only likely MicroStrategy template field names.
+    Do not remove valid long business field names just because they have many words.
+    """
+    cleaned = []
+
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
+
+        if is_description_line(text):
+            continue
+
+        cleaned.append(text)
+
+    return cleaned
