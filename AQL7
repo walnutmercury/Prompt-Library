@@ -81,3 +81,22 @@ if ENABLE_TEMP_TABLE_CONVERSION:
             "Temp tables detected but not converted (complex pattern)"
         )
 
+
+
+if ENABLE_TEMP_TABLE_CONVERSION:
+    if temp_check["has_select_into_temp"]:
+        
+        if len(temp_check["temp_tables"]) == 1:
+            # safe auto conversion
+            sql, temp_warnings = convert_simple_temp_table_to_cte(sql)
+            parsed_data["warnings"].extend(temp_warnings)
+
+        else:
+            # MULTI TEMP TABLE CASE → manual/targeted rewrite
+            parsed_data["warnings"].append(
+                "Multiple temp tables detected — requires manual CTE rewrite"
+            )
+
+            # OPTIONAL: override for known report
+            if parsed_data.get("report_name") == "Claims Experience Strategy":
+                sql = convert_claims_experience_to_cte(sql)
